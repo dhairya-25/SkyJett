@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SkyJet Flight Recovery — Test Credentials & Sample Data</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1a2230; line-height: 1.5; font-size: 10.5pt; margin: 0;
+  }
+  h1 { font-size: 21pt; margin: 0 0 4px; color: #0b2545; letter-spacing: -0.3px; }
+  .sub { color: #5b6b82; font-size: 10pt; margin: 0 0 18px; padding-bottom: 14px; border-bottom: 2px solid #e3e8f0; }
+  h2 { font-size: 13.5pt; color: #0b2545; margin: 22px 0 8px; padding-top: 4px; }
+  h3 { font-size: 11pt; margin: 14px 0 4px; }
+  p { margin: 6px 0; }
+  a { color: #1554b8; text-decoration: none; }
+  code {
+    font-family: "SF Mono", Consolas, "Liberation Mono", monospace;
+    background: #eef2f8; padding: 1px 5px; border-radius: 4px; font-size: 9pt; color: #b5185f;
+  }
+  pre {
+    background: #0f1b2d; color: #e6edf5; padding: 12px 14px; border-radius: 8px;
+    overflow-x: auto; font-size: 8.6pt; line-height: 1.45;
+  }
+  pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 8.9pt; }
+  th, td { border: 1px solid #dde3ec; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #0b2545; color: #fff; font-weight: 600; }
+  tr:nth-child(even) td { background: #f6f8fc; }
+  .pnr { font-family: "SF Mono", Consolas, monospace; font-weight: 700; color: #0b2545; white-space: nowrap; }
+  blockquote {
+    margin: 12px 0; padding: 10px 14px; background: #fff8e8;
+    border-left: 4px solid #f0b429; border-radius: 0 6px 6px 0; color: #5a4a1c; font-size: 9.6pt;
+  }
+  blockquote p { margin: 0; }
+  ul { margin: 6px 0; padding-left: 20px; }
+  li { margin: 3px 0; }
+  hr { border: none; border-top: 1px solid #e3e8f0; margin: 20px 0; }
+  .foot { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e3e8f0; color: #7b899e; font-size: 8.6pt; font-style: italic; }
+  h2 { page-break-after: avoid; }
+  table, pre, blockquote { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<h1>SkyJet Flight Recovery</h1>
+<p class="sub">Test Credentials &amp; Sample Data &nbsp;·&nbsp; 22North Product Engineering Challenge 2026 — Challenge 1</p>
+
+<blockquote><p>Everything a reviewer needs to test the app end-to-end. All data is <strong>simulated seed data</strong> — no real passengers, no real payments. Sign-in is <strong>PNR + last name</strong> (both must match).</p></blockquote>
+
+<h2>1. Run it locally</h2>
+<pre><code>cd skyjet-recovery
+npm install
+npm run dev          # → http://localhost:3000</code></pre>
+<ul>
+  <li>No environment variables are required. The app ships with an in-memory seeded store, so it works out-of-the-box.</li>
+  <li>The RAG chatbot (Disruption Assistant) is optional and falls back to deterministic keyword retrieval when no keys are set. To light up the semantic path, copy <code>.env.example</code> → <code>.env.local</code> and add <code>GEMINI_API_KEY</code> + <code>PINECONE_API_KEY</code>.</li>
+  <li>Run the tests with <code>npm test</code>.</li>
+</ul>
+<p><strong>Reset the demo</strong> at any time (restores all seed state) — the store also resets on a cold start:</p>
+<pre><code>curl -X POST http://localhost:3000/api/reset</code></pre>
+
+<h2>2. Demo login credentials</h2>
+<p>Log in on the home page (<code>/</code>) with a <strong>PNR</strong> and the passenger's <strong>last name</strong>. Each row is a self-contained test scenario.</p>
+<table>
+  <thead>
+    <tr><th>#</th><th>PNR</th><th>Last name</th><th>Passenger</th><th>Route</th><th>Disruption</th><th>What you should see</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td class="pnr">SJ7QK2</td><td><strong>Sharma</strong></td><td>Aarav Sharma (Standard, senior)</td><td>DEL → BKK</td><td>Cancelled · Weather</td><td>Rebook <strong>or</strong> full refund + meals &amp; hotel. <strong>No cash compensation</strong> (weather = extraordinary). <em>The primary demo booking.</em></td></tr>
+    <tr><td>2</td><td class="pnr">SJ4RM9</td><td><strong>Nair</strong></td><td>Priya Nair (Silver, +infant)</td><td>BOM → SIN</td><td>Cancelled · Technical</td><td>Rebook/refund <strong>+ cash compensation</strong> (airline-controlled cause).</td></tr>
+    <tr><td>3</td><td class="pnr">SJ8XP5</td><td><strong>Mehta</strong></td><td>Rohan Mehta (Gold, Business)</td><td>BLR → DXB</td><td>Delayed 300 min · Weather</td><td>Long-delay: rebook/refund <strong>+ meals</strong>, no compensation.</td></tr>
+    <tr><td>4</td><td class="pnr">SJ2MN1</td><td><strong>Gupta</strong></td><td>Ishaan Gupta (Standard)</td><td>DEL → BKK</td><td>Cancelled · Weather</td><td><strong>Unaccompanied minor → must escalate</strong> to a human agent (warm handoff).</td></tr>
+    <tr><td>5</td><td class="pnr">SJ7SR1</td><td><strong>Reddy</strong></td><td>Kavya Reddy (Silver, senior)</td><td>DEL → DXB</td><td>Cancelled · Technical</td><td>Priority <strong>rank 1</strong> — gets a scarce same-day seat.</td></tr>
+    <tr><td>6</td><td class="pnr">SJ7BZ2</td><td><strong>Singh</strong></td><td>Arjun Singh (Gold, Business)</td><td>DEL → DXB</td><td>Cancelled · Technical</td><td>Priority <strong>rank 2</strong> — gets the other scarce same-day seat.</td></tr>
+    <tr><td>7</td><td class="pnr">SJ7IN3</td><td><strong>Iyer</strong></td><td>Meera Iyer (Standard, +infant)</td><td>DEL → DXB</td><td>Cancelled · Technical</td><td>Priority <strong>rank 3</strong> — waitlisted onto the roomy next-day flight.</td></tr>
+    <tr><td>8</td><td class="pnr">SJ7ST4</td><td><strong>Kapoor</strong></td><td>Dev Kapoor (Standard)</td><td>DEL → DXB</td><td>Cancelled · Technical</td><td>Priority <strong>rank 4</strong> — waitlisted onto the next-day flight.</td></tr>
+  </tbody>
+</table>
+<blockquote><p><strong>Fastest path for a reviewer:</strong> start with <strong>SJ7QK2 / Sharma</strong> (weather refund story), then <strong>SJ4RM9 / Nair</strong> (compensation story), then <strong>SJ2MN1 / Gupta</strong> (escalation story). Bookings 5–8 together demonstrate priority-based seat allocation when seats are scarce.</p></blockquote>
+
+<h2>3. What each scenario exercises</h2>
+<ul>
+  <li><strong>Scenario 1 (DEL→BKK, weather cancel)</strong> — the golden path: identified status card → scored rebooking options → boarding pass, <em>or</em> an explainable refund. Alternative flights include a pricier one (pay the difference), a cheaper one (refunded the difference), a full flight (filtered out), and a next-day option.</li>
+  <li><strong>Scenario 2 (BOM→SIN, technical cancel)</strong> — same flow but the cause is airline-controlled, so <strong>cash compensation</strong> applies. Shows the cause-driven eligibility engine.</li>
+  <li><strong>Scenario 3 (BLR→DXB, 300-min weather delay)</strong> — a long <em>delay</em> (not a cancel) crossing the meals threshold; Business cabin.</li>
+  <li><strong>Scenario 4 (DEL→DXB, technical cancel, scarce seats)</strong> — four passengers (5–8) compete for <strong>2</strong> same-day seats. Priority order: <strong>senior → business → infant → standard</strong>. The top two are seated same-day; the rest are waitlisted to the roomy next-day flight.</li>
+</ul>
+
+<h2>4. Ops / admin panel</h2>
+<p>The flight-status ops console (<code>/admin</code>, and <code>POST /api/admin/flight</code>) is guarded by a bearer token.</p>
+<ul>
+  <li><strong>Local/dev token (works out-of-the-box):</strong> <code>skyjet-ops-2026</code></li>
+  <li>In <strong>production</strong> the panel stays disabled (503) until you set <code>ADMIN_TOKEN</code> in the deployment env.</li>
+</ul>
+<pre><code>curl http://localhost:3000/api/admin/flights \
+  -H "Authorization: Bearer skyjet-ops-2026"</code></pre>
+
+<h2>5. API quick-reference (for scripted testing)</h2>
+<p>All mutating endpoints are <code>POST</code>, JSON in/out. Write endpoints take a client-generated <code>idempotencyKey</code>.</p>
+<pre><code># Identify &amp; load a booking
+curl -X POST http://localhost:3000/api/lookup \
+  -H 'content-type: application/json' \
+  -d '{"pnr":"SJ7QK2","lastName":"Sharma"}'
+
+# Request a refund (idempotent)
+curl -X POST http://localhost:3000/api/refund \
+  -H 'content-type: application/json' \
+  -d '{"ref":"SJ7QK2","idempotencyKey":"&lt;uuid&gt;"}'
+
+# Escalate to a human agent
+curl -X POST http://localhost:3000/api/escalate \
+  -H 'content-type: application/json' \
+  -d '{"ref":"SJ2MN1"}'
+
+# Impact stats tile
+curl http://localhost:3000/api/stats</code></pre>
+<p>Full endpoint contracts live in <code>api.md</code>.</p>
+
+<p class="foot">All data here is fictional seed data (<code>src/lib/seed.ts</code>). Refunds and compensation issue a reference number only — there is no payment integration. Reset anytime with <code>POST /api/reset</code>.</p>
+
+</body>
+</html>

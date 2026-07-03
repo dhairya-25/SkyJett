@@ -1,0 +1,150 @@
+// SkyJet Flight Recovery — production data model (deliverable).
+//
+// NOTE: The MVP RUNTIME uses an in-memory seeded store (src/lib/store.ts) so the
+// demo runs identically on a laptop and on serverless (no DB to provision, no
+// ephemeral-filesystem issues). This file documents the intended PostgreSQL
+// schema for production. The in-memory store mirrors it 1:1 — including the
+// optimistic-concurrency `version` and idempotency-key patterns — so the swap
+// is mechanical.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FlightStatus {
+  SCHEDULED
+  CANCELLED
+  DELAYED
+}
+
+enum DisruptionCause {
+  WEATHER
+  ATC
+  SECURITY
+  TECHNICAL
+  CREW
+  OPERATIONAL
+  NONE
+}
+
+// Operational boarding progress, controlled by the ops/admin panel. Orthogonal
+// to FlightStatus (which drives eligibility) — this is progress signalling only.
+enum OpsStatus {
+  ON_TIME
+  REPORTING
+  BOARDING
+  DEPARTED
+}
+
+enum BookingStatus {
+  CONFIRMED
+  DISRUPTED
+  REBOOKED
+  REFUND_REQUESTED
+  ESCALATED
+}
+
+enum PassengerTier {
+  STANDARD
+  SILVER
+  GOLD
+}
+
+enum CabinClass {
+  ECONOMY
+  BUSINESS
+}
+
+model Flight {
+  id              String          @id
+  flightNo        String
+  origin          String
+  originCity      String
+  destination     String
+  destinationCity String
+  departure       DateTime
+  arrival         DateTime
+  durationMin     Int
+  status          FlightStatus    @default(SCHEDULED)
+  cause           DisruptionCause @default(NONE)
+  delayMinutes    Int             @default(0)
+  aircraft        String
+  cabin           CabinClass      @default(ECONOMY)
+  seatsAvailable  Int             @default(0)
+
+  // Ops/admin-controlled operational state (see the admin panel).
+  opsStatus     OpsStatus @default(ON_TIME)
+  opsNote       String?
+  opsUpdatedAt  DateTime?
+
+  // Discretionary "sorry for the inconvenience" goodwill gesture set by ops —
+  // separate from the statutory entitlements the eligibility engine derives.
+  goodwillMeal          Boolean   @default(false)
+  goodwillAccommodation Boolean   @default(false)
+  goodwillDiscountPct   Int       @default(0)
+  goodwillMessage       String?
+  goodwillReference     String?
+  goodwillIssuedAt      DateTime?
+
+  bookings     Booking[] @relation("BookingFlight")
+  rebookedInto Booking[] @relation("BookingRebookedFlight")
+
+  // Route lookups during a disruption spike hit this hard → index + cache.
+  @@index([origin, destination, status, departure])
+}
+
+model Passenger {
+  id        String        @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String
+  tier      PassengerTier @default(STANDARD)
+  bookings  Booking[]
+}
+
+model Booking {
+  ref                String        @id // PNR
+  passenger          Passenger     @relation(fields: [passengerId], references: [id])
+  passengerId        String
+  flight             Flight        @relation("BookingFlight", fields: [flightId], references: [id])
+  flightId           String
+  connectingFlightId String?
+  status             BookingStatus @default(CONFIRMED)
+  cabin              CabinClass    @default(ECONOMY)
+  fareClass          String
+  farePaid           Int
+  specialFlags       String[]
+  partySize          Int           @default(1)
+
+  rebookedFlight   Flight? @relation("BookingRebookedFlight", fields: [rebookedFlightId], references: [id])
+  rebookedFlightId String?
+  refundReference  String?
+  handoffReference String?
+
+  version   Int      @default(0) // optimistic concurrency control
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  audits AuditEntry[]
+
+  @@index([passengerId])
+}
+
+model AuditEntry {
+  id             String   @id @default(cuid())
+  booking        Booking  @relation(fields: [bookingRef], references: [ref])
+  bookingRef     String
+  action         String
+  detail         String
+  before         String?
+  after          String?
+  idempotencyKey String?  @unique // race-safe, replayable writes
+  at             DateTime @default(now())
+
+  @@index([bookingRef])
+}
